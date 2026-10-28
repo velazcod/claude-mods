@@ -35,13 +35,19 @@ Mods for Claude Code. Each mod is a Claude Code plugin in `mods/<name>/`. The fi
 
 ## Install
 
-At the prompt of a Claude Code terminal session:
+Install each mod that you want. The mods are `session-status` and `handoff`.
+
+At the prompt of a Claude Code terminal session, enter one command for each mod:
 
 ```
 /plugin install session-status --marketplace velazcod/claude-mods
 ```
 
-Answer `y` to add the marketplace, then select a scope. To install handoff, use `handoff` in place of `session-status`.
+```
+/plugin install handoff --marketplace velazcod/claude-mods
+```
+
+Answer `y` to add the marketplace, then select a scope.
 
 From a shell:
 
@@ -49,13 +55,25 @@ From a shell:
 claude plugin install session-status --marketplace velazcod/claude-mods
 ```
 
+```bash
+claude plugin install handoff --marketplace velazcod/claude-mods
+```
+
 In the Claude Desktop app, where `/plugin` does not run:
 
 1. Click **+** next to the prompt box.
 2. Click **Plugins**, then **Add marketplace**, and enter `velazcod/claude-mods`.
-3. Click **Add plugin**.
+3. Click **Add plugin**, then select the mod. Do this step again for each mod.
 
-Each mod has a `version`. To get a new version, run `claude plugin update session-status@claude-mods`.
+Each mod has a `version`. To get a new version of a mod, run `claude plugin update <name>@claude-mods`, for example:
+
+```bash
+claude plugin update session-status@claude-mods
+```
+
+```bash
+claude plugin update handoff@claude-mods
+```
 
 ## Develop
 
