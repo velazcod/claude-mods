@@ -8,6 +8,11 @@
       "name": "session-status",
       "source": "./mods/session-status",
       "description": "Shows the prompt cache timer, with the session's cache TTL and an optional Keep warm ping, above the prompt in the Claude Desktop app"
+    },
+    {
+      "name": "handoff",
+      "source": "./mods/handoff",
+      "description": "Writes a handoff prompt of the session to ~/.claude/handoffs/ and opens a new session with it, proposed when the context is large, with a progress card above the prompt"
     }
   ]
 }
