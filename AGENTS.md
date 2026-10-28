@@ -22,14 +22,15 @@ Claude Code writes `mods/<name>/.claude-plugin/types/` when it loads a mod. Do n
 
 - The folder name, the `name` in `plugin.json`, and the `name` of its marketplace entry are the same.
 - The marketplace entry's `source` is `./mods/<name>`, and its `description` is the same as the one in `plugin.json`.
-- Do not set `version` in `plugin.json`. Without it, installs follow commits.
+- Set `version` in `plugin.json` only, not in the marketplace entry. Use semver (`MAJOR.MINOR.PATCH`).
+- Bump `version` in the same commit as each change to a mod that users must get. Installed copies update only when the version changes. Use PATCH for a fix, MINOR for a new feature, and MAJOR for a change that removes or renames a command, setting, or stored value.
 - Declare each `$.state` value in `types/index.d.ts`, under the mod's name in `interface PluginState`, and name the file in `plugin.json` as `"types": "./types/index.d.ts"`.
 - Keep the mod's display and parsing logic in a file with no `$` calls, so tests can import it.
 - Do not put keys, tokens, internal hostnames, or another person's data in a mod.
 
 ## Add a mod
 
-1. Make `mods/<name>/` with the files in the layout.
+1. Make `mods/<name>/` with the files in the layout. Start at `"version": "0.1.0"`.
 2. Add an entry for it to `.claude-plugin/marketplace.json`.
 3. Add a row and a short section for it to `README.md`.
 4. Run the checks below.

@@ -37,7 +37,7 @@ In the Claude Desktop app, where `/plugin` does not run:
 2. Click **Plugins**, then **Add marketplace**, and enter `velazcod/claude-mods`.
 3. Click **Add plugin**.
 
-The plugins have no `version`, so an install follows the latest commit. To get changes, run `claude plugin update session-status@claude-mods`.
+Each mod has a `version`. To get a new version, run `claude plugin update session-status@claude-mods`.
 
 ## Develop
 
