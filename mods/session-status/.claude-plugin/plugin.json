@@ -1,6 +1,6 @@
 {
   "name": "session-status",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Shows the prompt cache timer, with the session's cache TTL and an optional Keep warm ping, above the prompt in the Claude Desktop app",
   "author": {
     "name": "Daniel Velazco"

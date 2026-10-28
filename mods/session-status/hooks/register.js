@@ -1,7 +1,6 @@
 import { atom, read, update } from 'claude-code'
 import {
   COLORS,
-  DEFAULT_TTL_MS,
   MAX_PINGS,
   MAX_TTL_MS,
   PING_LEAD_MS,
@@ -16,8 +15,8 @@ import {
 // $.state survives a module reload
 // When the main conversation last sent a request, or a ping refreshed the cache
 const lastRequestAt = atom({ plugin: 'session-status', key: 'lastRequestAt' }, 0)
-// The session's cache TTL, as the last response that wrote to the cache shows it
-const cacheTtlMs = atom({ plugin: 'session-status', key: 'cacheTtlMs' }, DEFAULT_TTL_MS)
+// The session's cache TTL, as the last response that wrote to the cache shows it; null until one does
+const cacheTtlMs = atom({ plugin: 'session-status', key: 'cacheTtlMs' }, null)
 // Keep warm is on, the pings sent since the last request, and what the last ping read
 const keepWarm = atom({ plugin: 'session-status', key: 'keepWarm' }, false)
 const pings = atom({ plugin: 'session-status', key: 'pings' }, 0)
@@ -72,11 +71,12 @@ async function setKeepWarm($, isOn) {
   await writeKeepWarmFile($)
 }
 
-// Copy this session's saved time and TTL into $.state; 0 (cold) and the default TTL when none are saved
+// Copy this session's saved time and TTL into $.state; 0 (cold) and null (unknown) when none are saved
 async function loadSaved($) {
   const sid = await $.session.id()
   const saved = Number((await $.store.get(TIME_PREFIX + sid)) ?? 0)
-  const ttl = Number((await $.store.get(TTL_PREFIX + sid)) ?? DEFAULT_TTL_MS)
+  const savedTtl = await $.store.get(TTL_PREFIX + sid)
+  const ttl = savedTtl == null ? null : Number(savedTtl)
   await update($, lastRequestAt, () => saved)
   await update($, cacheTtlMs, () => ttl)
 }
@@ -108,14 +108,14 @@ async function detectTtl($, path) {
   await $.store.set(TTL_PREFIX + (await $.session.id()), ttl)
 }
 
-// Send one ping when Keep warm is on, the session is idle, and a minute or less is left
+// Send one ping when Keep warm is on, the session is idle, the TTL is known, and a minute or less is left
 async function keepCacheWarm($) {
   if (isPinging || isTurnRunning || !(await read($, keepWarm))) return
   const sent = await read($, pings)
   if (sent >= MAX_PINGS) return
   const sentAt = await $.clock.now()
   const cache = cacheStatus(await read($, lastRequestAt), sentAt, await read($, cacheTtlMs))
-  if (cache.cold || cache.remaining > PING_LEAD_MS) return
+  if (cache.cold || cache.isTtlUnknown || cache.remaining > PING_LEAD_MS) return
 
   isPinging = true
   $.ui.invalidate('ui.render')
@@ -221,8 +221,11 @@ export function register(on) {
       Svg({ source: clockSvg(cache.color), alt: 'Clock', width: 16, height: 16 }),
       Text({ color: cache.color, weight: 'medium', children: [cache.cold ? 'Cache cold' : 'Cache warm'] }),
     ]
-    if (!cache.cold) timer.push(Text({ color: cache.color, weight: 'bold', tabular: true, children: [cache.text] }))
-    timer.push(Svg({ source: barSvg(cache.fraction, cache.color), alt: 'Time left', width: BAR_WIDTH, height: 6 }))
+    // Until the TTL is known, the timer shows no time and no bar
+    if (!cache.isTtlUnknown) {
+      if (!cache.cold) timer.push(Text({ color: cache.color, weight: 'bold', tabular: true, children: [cache.text] }))
+      timer.push(Svg({ source: barSvg(cache.fraction, cache.color), alt: 'Time left', width: BAR_WIDTH, height: 6 }))
+    }
 
     const row = Box({
       key: 'session-status',

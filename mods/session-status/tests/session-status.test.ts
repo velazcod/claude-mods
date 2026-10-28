@@ -26,9 +26,13 @@ const readOnly = JSON.stringify({ type: 'assistant', message: { usage: { cache_c
 const USAGE = { input_tokens: 1, output_tokens: 1, cache_read_input_tokens: 214_000, cache_creation_input_tokens: 0 }
 
 // Register the stubs every test needs: Claude Code's answers to the mod's calls.
-// `store` stands for $.store, `session.id` answers with `sid`, and `transcript` is what `tail` prints.
+// `store` stands for $.store, `session.id` answers with `sid`, and `transcript` is what `tail` prints
+// until `setTranscript` changes it.
 function stubSession(on, { store = new Map<string, unknown>(), sid = 'sess-1', transcript = '' } = {}) {
   const clock = mock.clock(on, { now: NOW })
+  const setTranscript = (text: string) => {
+    transcript = text
+  }
   const forks: string[] = []
   const files = new Map<string, string>()
   on('session.id', () => ({ value: sid }))
@@ -50,7 +54,7 @@ function stubSession(on, { store = new Map<string, unknown>(), sid = 'sess-1', t
   on('turn.step', async function* ($, e) {
     return { turnId: e.turnId, index: e.index, answer: 'ok', toolUses: [], stopReason: 'end_turn', usage: { ...USAGE, model: 'claude-test' } }
   })
-  return { clock, forks, files }
+  return { clock, forks, files, setTranscript }
 }
 
 const start = ($) => $.session.start({ surface: 'desktop', isInteractive: true, cwd: '/work' })
@@ -76,8 +80,10 @@ async function band($, surface = 'desktop') {
   const keepWarm = (await ui.find({ type: 'Text', text: /^Keeping warm/ }))?.text
   const others = (await ui.find({ type: 'Text', text: 'drawn by Claude Code' })) !== undefined
   const hasContext = (await ui.find({ type: 'Text', text: /\/1000k|█/ })) !== undefined
+  // The clock and the bar are the band's two images
+  const hasBar = (await ui.findAll({ type: 'Svg' })).length === 2
   await ui.unmount()
-  return { label, time: time?.text, color: time?.props.color, keepWarm, others, hasContext }
+  return { label, time: time?.text, color: time?.props.color, keepWarm, others, hasContext, hasBar }
 }
 
 async function pressKeepWarm($) {
@@ -94,6 +100,11 @@ test('formats the clock, the thresholds, the TTL, and the Keep warm line', () =>
   expect(cacheStatus(1, 1 + 45 * MIN, 60 * MIN)).toMatchObject({ text: '15:00', color: '#c68a1e' })
   expect(cacheStatus(1, 1 + 50 * MIN, 60 * MIN)).toMatchObject({ text: '10:00', color: '#c8553d' })
   expect(cacheStatus(1, 1 + 4 * MIN, 5 * MIN)).toMatchObject({ text: '1:00', color: '#c68a1e' })
+
+  // An unknown TTL: warm with no time for the shorter TTL, then cold
+  expect(cacheStatus(0, 1000, null)).toMatchObject({ cold: true })
+  expect(cacheStatus(1, 1 + 5 * MIN - SEC, null)).toEqual({ cold: false, isTtlUnknown: true, remaining: SEC, fraction: 0, color: '#3d8b5f' })
+  expect(cacheStatus(1, 1 + 5 * MIN, null)).toMatchObject({ cold: true })
 
   expect(svgColor('#3d8b5f')).toBe('rgb(61,139,95)')
   expect(clockSvg('#3d8b5f') + barSvg(0.5, '#3d8b5f')).not.toContain('#')
@@ -114,6 +125,35 @@ test('formats the clock, the thresholds, the TTL, and the Keep warm line', () =>
   expect(keepWarmLine({ cache: cacheStatus(0, 1, 60 * MIN), pings: 5, lastPing: { readTokens: 900 }, isPinging: false })).toBe(
     'Keeping warm · stopped after 5 pings · starts again after your next message · last ping read 900 cached tokens',
   )
+  expect(keepWarmLine({ cache: cacheStatus(1, 2, null), pings: 0, lastPing: null, isPinging: false })).toBe(
+    'Keeping warm · starts when the cache TTL is known',
+  )
+})
+
+test('a new session shows Cache warm with no time or bar until the transcript shows the TTL', async ($, on) => {
+  const { setTranscript } = stubSession(on)
+  await start($)
+  await step($)
+  expect(await band($)).toMatchObject({ label: 'Cache warm', time: undefined, hasBar: false })
+
+  setTranscript(response('1h'))
+  await $.classic.Stop({ stop_hook_active: false, transcript_path: '/work/t.jsonl' })
+  expect(await band($)).toMatchObject({ label: 'Cache warm', time: '60:00', hasBar: true })
+})
+
+test('with the TTL unknown, Keep warm sends no ping and the cache goes cold after 5 minutes', async ($, on) => {
+  const { clock, forks } = stubSession(on)
+  await start($)
+  await step($)
+  await pressKeepWarm($)
+  expect((await band($)).keepWarm).toBe('Keeping warm · starts when the cache TTL is known')
+
+  await clock.advance(5 * MIN - SEC)
+  expect(forks.length).toBe(0)
+  expect((await band($)).label).toBe('Cache warm')
+  await clock.advance(SEC)
+  expect(forks.length).toBe(0)
+  expect(await band($)).toMatchObject({ label: 'Cache cold', hasBar: true })
 })
 
 test('the Desktop band shows cold, then counts down from the TTL the transcript shows', async ($, on) => {

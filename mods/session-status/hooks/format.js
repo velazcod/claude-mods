@@ -2,8 +2,6 @@
 
 export const TTL_5M_MS = 5 * 60 * 1000
 export const TTL_1H_MS = 60 * 60 * 1000
-// Until a response shows the session's TTL, assume the shorter one, so the timer never shows a cold cache as warm
-export const DEFAULT_TTL_MS = TTL_5M_MS
 // The longest TTL, for removing saved times that have expired whatever their TTL
 export const MAX_TTL_MS = TTL_1H_MS
 
@@ -34,9 +32,12 @@ export function formatTokens(n) {
 
 // The cache timer: cold, or the time left, the part of the TTL left, and its color.
 // The color changes at the last quarter (15 of 60 minutes) and the last sixth (10 of 60 minutes).
+// ttlMs is null until a response shows the session's TTL: the cache is then warm with no time
+// for the shorter TTL, and cold after it, so the timer never shows a cold cache as warm.
 export function cacheStatus(lastRequestAt, now, ttlMs) {
-  const remaining = lastRequestAt ? ttlMs - (now - lastRequestAt) : 0
+  const remaining = lastRequestAt ? (ttlMs ?? TTL_5M_MS) - (now - lastRequestAt) : 0
   if (remaining <= 0) return { cold: true, remaining: 0, fraction: 0, color: COLORS.cold }
+  if (ttlMs === null) return { cold: false, isTtlUnknown: true, remaining, fraction: 0, color: COLORS.cache }
   const fraction = remaining / ttlMs
   const color = fraction <= 1 / 6 ? COLORS.warn : fraction <= 1 / 4 ? COLORS.caution : COLORS.cache
   return { cold: false, remaining, fraction, text: formatClock(remaining), color }
@@ -69,6 +70,7 @@ export function keepWarmLine({ cache, pings, lastPing, isPinging }) {
   if (isPinging) parts.push('sending ping ' + (pings + 1))
   else if (cache.cold && pings >= MAX_PINGS) parts.push('stopped after ' + MAX_PINGS + ' pings', 'starts again after your next message')
   else if (cache.cold) parts.push('starts after the next response')
+  else if (cache.isTtlUnknown) parts.push('starts when the cache TTL is known')
   else if (pings === 0) parts.push('first ping in ' + formatClock(cache.remaining - PING_LEAD_MS))
   else if (pings < MAX_PINGS) parts.push('ping ' + pings + ' of ' + MAX_PINGS, 'next in ' + formatClock(cache.remaining - PING_LEAD_MS))
   else parts.push('ping ' + pings + ' of ' + MAX_PINGS, 'no more pings')

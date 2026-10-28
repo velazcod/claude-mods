@@ -11,7 +11,7 @@ Mods for Claude Code. Each mod is a Claude Code plugin in `mods/<name>/`. The fi
 ### session-status
 
 - Shows "Cache warm" with the time left, or "Cache cold", and a bar for the part of the TTL that is left. The color changes when a quarter and a sixth of the TTL are left.
-- Reads the cache TTL (5 minutes or 1 hour) of each session from its transcript.
+- Reads the cache TTL (5 minutes or 1 hour) of each session from its transcript. Until it reads the TTL (in a new session, until the first response ends), it shows "Cache warm" with no time and no bar, and Keep warm sends no pings.
 - **Keep warm** (button, or `/keep-warm [on|off]`): when one minute is left and the session is idle, the mod sends a short ping that refreshes the cache. It sends at most 5 pings after each request. Each ping uses model tokens.
 - In the terminal, the mod does not draw the band. It writes `/tmp/.claude_cache_ts.<session id>` and `/tmp/.claude_keep_warm.<session id>` for a shell status line script to read. This repository does not include that script.
 
