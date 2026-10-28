@@ -8,6 +8,7 @@ Mods for Claude Code. Each mod is a Claude Code plugin in `mods/<name>/`. The fi
 | --- | --- |
 | [session-status](./mods/session-status) | Shows the prompt cache timer above the prompt in the Claude Desktop app, with a Keep warm button. |
 | [handoff](./mods/handoff) | Writes a handoff prompt of the session and opens a new session with it. Proposes it when the context is large. |
+| [session-pane](./mods/session-pane) | Shows a Session Pane beside the chat: the to-do list, the context window, and the connectors, skills, and files that the session used or made. |
 
 ### session-status
 
@@ -33,9 +34,25 @@ Mods for Claude Code. Each mod is a Claude Code plugin in `mods/<name>/`. The fi
 - To hand off at the end of autonomous work, say so in the prompt, for example: "Do XYZ, work autonomously, and when done, call handoff." The model calls the tool, and the handoff starts when its turn ends. The mod does not start a new session by itself.
 - The forked call uses model tokens. It reads the conversation from the prompt cache when the cache is warm.
 
+### session-pane
+
+- In the Desktop app, the mod opens a pane named **Session Pane** when the session starts. In the terminal, or to open it again, enter `/session-pane`.
+- The pane has these sections, in this order:
+  - **To-do**: the live task list, from the desktop app's task list, `TodoWrite`, or `TaskCreate` and `TaskUpdate`, with "2 of 6" done.
+  - **Context**: the context window used, with a bar and one row for each category, in the same order and colors as the session pane of the Desktop app. The mod estimates the categories locally, so the numbers can differ a little from `/context`.
+  - **Connectors**: each MCP server that the session called, with a logo, the tools it called, and the number of calls. The logo is a colored letter, not the service's own logo.
+  - **Skills**: each skill that ran, typed as `/name` or run by the `Skill` tool, with the number of uses.
+  - **Context files**: the instruction files (`CLAUDE.md`) that loaded, marked `auto`, and each file that the `Read` tool read.
+  - **Files created/edited**: each file that `Write`, `Edit`, or `NotebookEdit` created or changed, marked new or edited.
+- Click a section title to collapse the section to its title and count. The Context section keeps its bar when it is collapsed. The mod keeps this choice for the session.
+- Click a file name to open it. In the Desktop app, the file opens in the Files pane. A file outside the session's folders, or a click in the terminal, opens the file in its default app.
+- When the mod loads in a session that already has a transcript, it reads the tool calls from the transcript. It cannot read instruction files that loaded before the mod, or skills that the person typed as `/name` before the mod.
+- The Desktop app names some connectors with an ID. The mod identifies Google Calendar, Gmail, and Google Drive from their tool names. It shows other such connectors as "Connector" and the first 8 characters of the ID.
+- The mod does not count files that `Bash` commands read or write.
+
 ## Install
 
-Install each mod that you want. The mods are `session-status` and `handoff`.
+Install each mod that you want. The mods are `session-status`, `handoff`, and `session-pane`.
 
 At the prompt of a Claude Code terminal session, enter one command for each mod:
 
@@ -45,6 +62,10 @@ At the prompt of a Claude Code terminal session, enter one command for each mod:
 
 ```
 /plugin install handoff --marketplace velazcod/claude-mods
+```
+
+```
+/plugin install session-pane --marketplace velazcod/claude-mods
 ```
 
 Answer `y` to add the marketplace, then select a scope.
@@ -57,6 +78,10 @@ claude plugin install session-status --marketplace velazcod/claude-mods
 
 ```bash
 claude plugin install handoff --marketplace velazcod/claude-mods
+```
+
+```bash
+claude plugin install session-pane --marketplace velazcod/claude-mods
 ```
 
 In the Claude Desktop app, where `/plugin` does not run:
@@ -73,6 +98,10 @@ claude plugin update session-status@claude-mods
 
 ```bash
 claude plugin update handoff@claude-mods
+```
+
+```bash
+claude plugin update session-pane@claude-mods
 ```
 
 ## Develop

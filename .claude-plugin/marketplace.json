@@ -13,6 +13,11 @@
       "name": "handoff",
       "source": "./mods/handoff",
       "description": "Writes a handoff prompt of the session to ~/.claude/handoffs/ and opens a new session with it, proposed when the context is large, with a progress card above the prompt"
+    },
+    {
+      "name": "session-pane",
+      "source": "./mods/session-pane",
+      "description": "Shows a Session Pane beside the chat with the to-do list, the context window, and the connectors, skills, and files that the session used, created, or changed"
     }
   ]
 }

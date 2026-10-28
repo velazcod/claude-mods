@@ -1,0 +1,9 @@
+{
+  "name": "session-pane",
+  "version": "0.1.0",
+  "description": "Shows a Session Pane beside the chat with the to-do list, the context window, and the connectors, skills, and files that the session used, created, or changed",
+  "author": {
+    "name": "Daniel Velazco"
+  },
+  "types": "./types/index.d.ts"
+}
