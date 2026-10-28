@@ -1,0 +1,8 @@
+{
+  "name": "session-status",
+  "description": "Shows the prompt cache timer, with the session's cache TTL and an optional Keep warm ping, above the prompt in the Claude Desktop app",
+  "author": {
+    "name": "Daniel Velazco"
+  },
+  "types": "./types/index.d.ts"
+}
