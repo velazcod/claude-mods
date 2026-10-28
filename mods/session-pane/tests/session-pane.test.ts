@@ -86,6 +86,19 @@ function stubSession(on, messages: object[] = MESSAGES) {
   return { opened, runs, shown }
 }
 
+// The chevron after each section title, by title: 'open' or 'collapsed'
+const SECTIONS = ['To-do', 'Context', 'Connectors', 'Skills', 'Context files', 'Files created/edited']
+async function chevrons($, surface: 'desktop' | 'terminal') {
+  const ui = await $.ui.mount(pane('session-pane', surface))
+  const marks = {}
+  for (const title of SECTIONS) {
+    const label = (await ui.find({ type: 'Button', key: 'chevron-' + title }))?.props.label
+    marks[title] = label === '▸' ? 'collapsed' : label === '▾' ? 'open' : undefined
+  }
+  await ui.unmount()
+  return marks
+}
+
 async function texts($, requestId: string, surface: 'desktop' | 'terminal') {
   const ui = await $.ui.mount(pane(requestId, surface))
   const all = (await ui.findAll({ type: 'Text' })).map((t) => t.text)
@@ -246,7 +259,7 @@ for (const surface of ['desktop', 'terminal'] as const) {
     await ui.press({ key: 'toggle-Context' })
     await ui.unmount()
     let shown = await texts($, 'session-pane', surface)
-    expect(shown).toContain('▸ Context')
+    expect((await chevrons($, surface))['Context']).toBe('collapsed')
     expect(shown).toContain('21% used')
     expect(shown).not.toContain('Messages')
 
@@ -254,7 +267,7 @@ for (const surface of ['desktop', 'terminal'] as const) {
     await ui.press({ key: 'toggle-Context' })
     await ui.unmount()
     shown = await texts($, 'session-pane', surface)
-    expect(shown).toContain('▾ Context')
+    expect((await chevrons($, surface))['Context']).toBe('open')
     expect(shown).toContain('Messages')
   })
 }
@@ -267,7 +280,10 @@ for (const surface of ['desktop', 'terminal'] as const) {
     for (const title of ['To-do', 'Connectors', 'Skills', 'Context files', 'Files created/edited']) await ui.press({ key: 'toggle-' + title })
     await ui.unmount()
     const shown = await texts($, 'session-pane', surface)
-    for (const title of ['▸ To-do', '▸ Connectors', '▸ Skills', '▸ Context files', '▸ Files created/edited', '1 of 3']) expect(shown).toContain(title)
+    const marks = await chevrons($, surface)
+    for (const title of ['To-do', 'Connectors', 'Skills', 'Context files', 'Files created/edited']) expect(marks[title]).toBe('collapsed')
+    expect(marks['Context']).toBe('open')
+    expect(shown).toContain('1 of 3')
     for (const hidden of ['Google Calendar', 'call-prep', 'brightline.md', 'Files read']) expect(shown).not.toContain(hidden)
   })
 }
@@ -276,7 +292,7 @@ test('the sections come in order, the files the session made among them', async 
   stubSession(on)
   await $.session.start({ cwd: '/work', surface: 'desktop', isInteractive: true })
   const shown = await texts($, 'session-pane', 'desktop')
-  const order = ['▾ To-do', '▾ Context', '▾ Connectors', '▾ Skills', '▾ Context files', '▾ Files created/edited'].map((t) => shown.indexOf(t))
+  const order = ['To-do', 'Context', 'Connectors', 'Skills', 'Context files', 'Files created/edited'].map((t) => shown.indexOf(t))
   expect(order.every((i) => i >= 0)).toBe(true)
   expect([...order].sort((a, b) => a - b)).toEqual(order)
 })

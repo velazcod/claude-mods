@@ -85,12 +85,15 @@ function openPane($) {
 function section(ui, title, count, children, keep = []) {
   const { Box, Button, Text } = ui
   const isCollapsed = ui.collapsed.includes(title)
-  const toggle = Button({
-    key: 'toggle-' + title,
-    plain: true,
-    label: (isCollapsed ? '▸ ' : '▾ ') + title,
-    children: [Text({ size: SIZE, children: [(isCollapsed ? '▸ ' : '▾ ') + title] })],
-    onPress: () => ui.toggle(title),
+  // The title, then a gray chevron, as the session pane of the Desktop app draws them. Both
+  // toggle the section. An Svg takes no press, so the chevron is a plain button too.
+  const toggle = Box({
+    flexDirection: 'row',
+    alignItems: 'center',
+    children: [
+      Button({ key: 'toggle-' + title, plain: true, label: title, onPress: () => ui.toggle(title) }),
+      Button({ key: 'chevron-' + title, plain: true, dimColor: true, label: isCollapsed ? '▸' : '▾', onPress: () => ui.toggle(title) }),
+    ],
   })
   return Box({
     key: 'section-' + title,
